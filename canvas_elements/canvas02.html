@@ -1,0 +1,26 @@
+﻿<html>
+<body>
+
+HTML Canvas Test (Text)
+
+<p>
+
+<canvas id="canvas" width="400" height="250" style="border:1px solid #000000;">
+<script>
+
+var canvas = document.getElementById('canvas');
+var context = canvas.getContext('2d');
+
+context.font = 'bold 32px Arial';
+context.strokeText('Hello World', 10, 50);
+context.fillText('Hello World', 10, 200);
+
+context.fillStyle = "blue"
+context.textAlign = "center";
+context.fillText('Hello World', canvas.width/2, canvas.height/2);
+
+</script>
+</canvas>
+
+</body>
+</html>
