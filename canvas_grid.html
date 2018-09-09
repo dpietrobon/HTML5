@@ -10,24 +10,25 @@ Your browser does not support the HTML5 canvas tag.</canvas>
 var c = document.getElementById("myCanvas");
 var ctx = c.getContext("2d");
 
-var n = 8; // Change the variables (n and m) for a different number of grid divisions
-var m = 8; // Change the variables (n and m) for a different number of grid divisions
+// Change variables (n and m) to change grid divisions 
+var n = 8; 
+var m = 8; 
+
 var w = myCanvas.width;
 var h = myCanvas.height;
 
 for (i=0; i<n; i++){
-	ctx.moveTo((1+i)*w/n,0);
-	ctx.lineTo((1+i)*w/n,h);
+	ctx.moveTo(i*w/n,0);
+	ctx.lineTo(i*w/n,h);
 	ctx.stroke();
 }
 
 for (j=0; j<m; j++){
-	ctx.moveTo(0,(1+j)*h/m);
-	ctx.lineTo(w,(1+j)*h/m);
+	ctx.moveTo(0,j*h/m);
+	ctx.lineTo(w,j*h/m);
 	ctx.stroke();
 }
 
 </script>
-
 </body>
 </html>
