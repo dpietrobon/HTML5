@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="myCanvas" width="600" height="600" 
+style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML5 canvas tag.</canvas>
+
+<script>
+var c = document.getElementById("myCanvas");
+var ctx = c.getContext("2d");
+
+// Change the variables (n and m) for a different grid ratio m:n
+
+var n = 8; 
+var m = 13; 
+
+var w = myCanvas.width;
+var h = myCanvas.height;
+
+for (i=0; i<n; i++){
+	for (j=0; j<m; j++){
+		if ((i+j)%2==0){ // Toggle 0 <-> 1 to invert black and white
+			ctx.fillRect(i*w/n,j*h/m,w/n,h/m);
+		}
+	}
+}
+
+</script>
+</body>
+</html>
