@@ -29,7 +29,7 @@ var update_speed = 100;
 
 // Initialize Game Canvas
 var canvas = document.getElementById('canvas');
-canvas.width  = 800;
+canvas.width  = 1000;
 canvas.height = 600;
 var ctx = canvas.getContext('2d');
 ctx.globalCompositeOperation = 'source-over';
@@ -44,15 +44,31 @@ function draw_line(x1,y1,x2,y2){
 }
 
 // Ground dimensions
-var buttonX = 1;
-var buttonY = 480;
-var buttonW = 798;
-var buttonH = 119;
+var groundX = 0;
+var groundY = 480;
+var groundW = canvas.width;
+var groundH = 120;
 
+var skyH = canvas.height - groundH;
+// Draw scenery
+var dusk_orange = '#F5B041';
+var light_blue = '#85C1E9';
+var dark_brown = '#663333'
 // Draw ground
-ctx.fillStyle = 'brown';
-ctx.fillRect(buttonX, buttonY, buttonW, buttonH);
+//ctx.fillStyle = 'brown';
+//ctx.fillRect(groundX, groundY, groundW, groundH);
+var ground_grad=ctx.createLinearGradient(0, 480, 0, 480+groundH);
+ground_grad.addColorStop(0, dark_brown);
+ground_grad.addColorStop(1, dusk_orange);
+ctx.fillStyle = ground_grad;
+ctx.fillRect(groundX, groundY, canvas.width, groundH);
 //ctx.drawImage(title_image, 0, 0);
+// draw sky
+var title_gradient=ctx.createLinearGradient(0, 0, 0, skyH);
+title_gradient.addColorStop(0, '#85C1E9');
+title_gradient.addColorStop(1, '#F5B042');
+ctx.fillStyle = title_gradient;
+ctx.fillRect(0, 0, canvas.width, skyH);
 
 var i = 0;
 function update_title(){
@@ -60,9 +76,11 @@ function update_title(){
 		x1 = 399;
 		y1 = 478;
 		x2 = 399;
-		y2 = 477+i;
-		draw_line(x1,y1,x2,y2);
-		draw_line(398,478,398 - i/3,477-i);
+		y2 = 477-i;
+		if (i < 333){
+			draw_line(x1,y1,x2,y2);
+			draw_line(398,478,398 - i/3,477-i);
+			}
 		}
 	
 	
@@ -114,13 +132,49 @@ function update_title(){
 update_title()
 
 function update_game(){
+	// set game time
+	var game_time = Math.floor(i % 240); 
 	// clear all
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	// draw ground
 	ctx.fillStyle = 'brown';
-	ctx.fillRect(buttonX, buttonY, buttonW, buttonH);
+	ctx.fillRect(groundX, groundY, groundW, groundH);
+	// draw sky
+	// night
+	if (game_time <= 30 || game_time > 180){
+		// light night sky - #5D6D7E
+		// dark night sky - #212F3D
+		ctx.fillStyle = '#212F3D';
+		ctx.fillRect(0, 0, canvas.width, skyH);
+	} 
+	else if (30 < game_time && game_time <= 40){
+		var sky_gradient=ctx.createLinearGradient(0, 0, 0, skyH);
+		sky_gradient.addColorStop(0.99-game_time/4000, '#212F3D'); //night
+		sky_gradient.addColorStop(1, '#F5B041'); //orange
+		ctx.fillStyle = sky_gradient;
+		ctx.fillRect(0, 0, groundW, skyH);
+	}
+	else if (40 < game_time && game_time <= 70){
+		var sky_gradient=ctx.createLinearGradient(0, 0, 0, skyH);
+		sky_gradient.addColorStop(0, '#212F3D'); //night
+		sky_gradient.addColorStop(1-(game_time - 40)/30, '#F5B041'); //orange
+		ctx.fillStyle = sky_gradient;
+		ctx.fillRect(0, 0, groundW, skyH);
+	} 
+	else if (70 < game_time && game_time < 160){
+		ctx.fillStyle = light_blue;
+		ctx.fillRect(0, 0, canvas.width, skyH);
+	} 
+	else {
+		var sky_gradient=ctx.createLinearGradient(0, 0, 0, skyH);
+		sky_gradient.addColorStop(0, '#85C1E9'); //light blue?
+		sky_gradient.addColorStop(1, '#F5B041'); //orange
+		ctx.fillStyle = sky_gradient;
+		ctx.fillRect(0, 0, groundW, skyH);
+	}
 	// game clock
 	ctx.fillStyle = 'black';
-	var itext = i.toString();
+	var itext = game_time.toString();
 	ctx.fillText(itext, 100, 540);
 	ctx.fillStyle = 'brown';
 	i++;
@@ -139,10 +193,8 @@ canvas.addEventListener('click', function(event) {
 	var rect = canvas.getBoundingClientRect();
     var x = event.clientX - rect.left;
     var y = event.clientY - rect.top;
-    if (x > buttonX && x < buttonX + buttonW && y > buttonY && y < buttonY + buttonH){
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		//document.write("x: " + x + " y: " + y);
-		ctx.fillRect(3, 3, 60, 40);
+    if (x > groundX && x < groundX + groundW && y > groundY && y < groundY + groundH){
+		return false;
 	}
 });
 
