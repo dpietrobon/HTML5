@@ -1,3 +1,4 @@
+
 <html>
 <head>
 <title> Tree Game</title>
@@ -27,14 +28,25 @@ window.onload = function(){
 // Declare Global Variables
 var update_speed = 100;
 
+// Images
+var img = new Image();   // Create new img element
+img.src = 'images/clouds.gif';
+
+/* Color List */
+var dark_brown = '#663333';
+var dusk_orange = '#F5B041';
+var light_blue = '#85C1E9';
+var pink_brown = '#EDBB99';
+
 // Initialize Game Canvas
 var canvas = document.getElementById('canvas');
+// have to define canvas width and height like this for some reason...
 canvas.width  = 1000;
 canvas.height = 600;
 var ctx = canvas.getContext('2d');
 ctx.globalCompositeOperation = 'source-over';
 //var title_image = new Image();
-var title_status = true;
+var title_status = true; // begin game at title screen.
 
 function draw_line(x1,y1,x2,y2){
 	ctx.beginPath();
@@ -45,24 +57,27 @@ function draw_line(x1,y1,x2,y2){
 
 // Ground dimensions
 var groundX = 0;
-var groundY = 480;
+var groundY = 200;
 var groundW = canvas.width;
-var groundH = 120;
+var groundH = 400;
 
 var skyH = canvas.height - groundH;
-// Draw scenery
-var dusk_orange = '#F5B041';
-var light_blue = '#85C1E9';
-var dark_brown = '#663333'
-// Draw ground
+
+// generate mountains
+var mount = generate_mountains(20);
+var xm = mount[0];
+var ym = mount[1];
+
+// draw ground
 //ctx.fillStyle = 'brown';
 //ctx.fillRect(groundX, groundY, groundW, groundH);
-var ground_grad=ctx.createLinearGradient(0, 480, 0, 480+groundH);
-ground_grad.addColorStop(0, dark_brown);
-ground_grad.addColorStop(1, dusk_orange);
+var ground_grad=ctx.createLinearGradient(0, 200, 0, 200+groundH);
+ground_grad.addColorStop(0, dusk_orange);
+ground_grad.addColorStop(1, dark_brown);
 ctx.fillStyle = ground_grad;
 ctx.fillRect(groundX, groundY, canvas.width, groundH);
 //ctx.drawImage(title_image, 0, 0);
+
 // draw sky
 var title_gradient=ctx.createLinearGradient(0, 0, 0, skyH);
 title_gradient.addColorStop(0, '#85C1E9');
@@ -78,8 +93,8 @@ function update_title(){
 		x2 = 399;
 		y2 = 477-i;
 		if (i < 333){
-			draw_line(x1,y1,x2,y2);
-			draw_line(398,478,398 - i/3,477-i);
+			//draw_line(x1,y1,x2,y2);
+			//draw_line(398,478,398 - i/3,477-i);
 			}
 		}
 	
@@ -93,7 +108,8 @@ function update_title(){
 		
 		ctx.fillStyle = 'black';
 		ctx.fillRect(b1x,b1y,b1w,b1h)
-		//var alpha = 0.1;
+		// should have play button fade in...
+		//var alpha = 0.1; 
         //ctx.globalAlpha = alpha;    
 		ctx.fillStyle = 'white';
 		ctx.fillRect(580,506,160,50)
@@ -118,6 +134,7 @@ function update_title(){
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			title_status = false;
 			i = 0;
+			var mainc = new character();
 			game();
 		}
 	});
@@ -129,53 +146,85 @@ function update_title(){
 	}
 }
 
-update_title()
+update_title();
+//game();
+
+function character(){
+	this.name = 'Daniel';
+	this.update = function(){ 
+		ctx.fillRect(0,0,10,10);
+	}
+}
+
+function generate_mountains(depth){
+	var n = depth;
+	var mount_x = [];
+	var mount_y = [];
+	for (k = 0; k <= n; k++){
+		mount_x[k] = (k/n)*canvas.width;
+		mount_y[k] = groundY*Math.random();
+	}
+	return [mount_x,mount_y];
+}
 
 function update_game(){
+	var mainc = new character();
+	
 	// set game time
-	var game_time = Math.floor(i % 240); 
+	var game_time = Math.floor(i % 2400); // quicker to only check mod on the edge surely.
+	var time_h = Math.floor(game_time/100);
+	
 	// clear all
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	// draw ground
-	ctx.fillStyle = 'brown';
-	ctx.fillRect(groundX, groundY, groundW, groundH);
+
 	// draw sky
 	// night
-	if (game_time <= 30 || game_time > 180){
+	
 		// light night sky - #5D6D7E
 		// dark night sky - #212F3D
-		ctx.fillStyle = '#212F3D';
-		ctx.fillRect(0, 0, canvas.width, skyH);
-	} 
-	else if (30 < game_time && game_time <= 40){
-		var sky_gradient=ctx.createLinearGradient(0, 0, 0, skyH);
-		sky_gradient.addColorStop(0.99-game_time/4000, '#212F3D'); //night
-		sky_gradient.addColorStop(1, '#F5B041'); //orange
-		ctx.fillStyle = sky_gradient;
-		ctx.fillRect(0, 0, groundW, skyH);
+		// orange - #F5B041
+	// light night sky - #5D6D7E
+	// dark night sky - #212F3D
+	// '#F5B041'); //orange
+	//ctx.fillStyle = '#212F3D';
+	//ctx.fillRect(0, 0, canvas.width, skyH);
+	var sky_gradient=ctx.createLinearGradient(0, -47*(skyH*game_time)/2400, 0, 48*skyH-47*skyH*game_time/2400);
+	sky_gradient.addColorStop(0, '#212F3D'); 
+	sky_gradient.addColorStop(0.2, '#5D6D7E');
+	sky_gradient.addColorStop(0.25, '#F5B041');
+	sky_gradient.addColorStop(0.4, light_blue);
+	sky_gradient.addColorStop(0.7, light_blue);
+	sky_gradient.addColorStop(0.75, '#F5B041');	
+	sky_gradient.addColorStop(0.9, '#212F3D'); 
+	sky_gradient.addColorStop(1.0,'#212F3D');
+	ctx.fillStyle = sky_gradient;
+	ctx.fillRect(0, 0, groundW, skyH);
+	
+	// draw mountains?
+	ctx.fillStyle = 'brown';
+	ctx.beginPath();
+	ctx.moveTo(0, groundY);
+	for (m = 0; m <= 20; m++){
+		ctx.lineTo(xm[m],ym[m]);
 	}
-	else if (40 < game_time && game_time <= 70){
-		var sky_gradient=ctx.createLinearGradient(0, 0, 0, skyH);
-		sky_gradient.addColorStop(0, '#212F3D'); //night
-		sky_gradient.addColorStop(1-(game_time - 40)/30, '#F5B041'); //orange
-		ctx.fillStyle = sky_gradient;
-		ctx.fillRect(0, 0, groundW, skyH);
-	} 
-	else if (70 < game_time && game_time < 160){
-		ctx.fillStyle = light_blue;
-		ctx.fillRect(0, 0, canvas.width, skyH);
-	} 
-	else {
-		var sky_gradient=ctx.createLinearGradient(0, 0, 0, skyH);
-		sky_gradient.addColorStop(0, '#85C1E9'); //light blue?
-		sky_gradient.addColorStop(1, '#F5B041'); //orange
-		ctx.fillStyle = sky_gradient;
-		ctx.fillRect(0, 0, groundW, skyH);
-	}
+	ctx.lineTo(canvas.width,groundY);
+	ctx.closePath();
+	ctx.fill();
+	 
+	// draw ground
+	// ground is ontop of longer sky elements...
+	ctx.fillStyle = 'burlywood';
+	ctx.fillRect(groundX, groundY, groundW, groundH);
+	
+	// draw character
+	mainc.update();
+	
 	// game clock
 	ctx.fillStyle = 'black';
 	var itext = game_time.toString();
 	ctx.fillText(itext, 100, 540);
+	var hours_text = time_h.toString();
+	ctx.fillText(hours_text, 200, 550);
 	ctx.fillStyle = 'brown';
 	i++;
 	setTimeout(update_game,update_speed);
