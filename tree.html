@@ -26,27 +26,51 @@ Your browser does not support the HTML5 canvas tag.
 window.onload = function(){
 
 // Declare Global Variables
-var update_speed = 100;
-
-// Images
-var img = new Image();   // Create new img element
-img.src = 'images/clouds.gif';
+var update_speed = 50;
+var main_char = new character();
+var char_speed_limit = 10;
 
 /* Color List */
 var dark_brown = '#663333';
 var dusk_orange = '#F5B041';
 var light_blue = '#85C1E9';
 var pink_brown = '#EDBB99';
+var orange_brown = '#F0C598';
 
 // Initialize Game Canvas
 var canvas = document.getElementById('canvas');
-// have to define canvas width and height like this for some reason...
 canvas.width  = 1000;
 canvas.height = 600;
 var ctx = canvas.getContext('2d');
-ctx.globalCompositeOperation = 'source-over';
-//var title_image = new Image();
+ctx.globalCompositeOperation = 'source-over'; // objects are printed over one another
 var title_status = true; // begin game at title screen.
+
+// Ground and sky dimensions
+var groundX = 0;
+var groundY = (1/3)*canvas.height;
+var groundW = canvas.width;
+var groundH = (2/3)*canvas.height;
+var skyH = canvas.height - groundH;
+
+// generate mountains
+var mount = generate_mountains(33);
+var xm = mount[0];
+var ym = mount[1];
+
+// draw ground
+var ground_grad=ctx.createLinearGradient(0, 200, 0, 200+groundH);
+ground_grad.addColorStop(0, orange_brown);
+ground_grad.addColorStop(1, dark_brown);
+ctx.fillStyle = ground_grad;
+ctx.fillRect(groundX, groundY, canvas.width, groundH);
+
+// horizon line
+ctx.beginPath();
+ctx.moveTo(0, 200);
+ctx.lineTo(canvas.width, 200);
+ctx.stroke();
+
+/* MAIN FUNCTIONS */
 
 function draw_line(x1,y1,x2,y2){
 	ctx.beginPath();
@@ -55,57 +79,47 @@ function draw_line(x1,y1,x2,y2){
 	ctx.stroke();
 }
 
-// Ground dimensions
-var groundX = 0;
-var groundY = 200;
-var groundW = canvas.width;
-var groundH = 400;
-
-var skyH = canvas.height - groundH;
-
-// generate mountains
-var mount = generate_mountains(20);
-var xm = mount[0];
-var ym = mount[1];
-
-// draw ground
-//ctx.fillStyle = 'brown';
-//ctx.fillRect(groundX, groundY, groundW, groundH);
-var ground_grad=ctx.createLinearGradient(0, 200, 0, 200+groundH);
-ground_grad.addColorStop(0, dusk_orange);
-ground_grad.addColorStop(1, dark_brown);
-ctx.fillStyle = ground_grad;
-ctx.fillRect(groundX, groundY, canvas.width, groundH);
-//ctx.drawImage(title_image, 0, 0);
-
-// draw sky
-var title_gradient=ctx.createLinearGradient(0, 0, 0, skyH);
-title_gradient.addColorStop(0, '#85C1E9');
-title_gradient.addColorStop(1, '#F5B042');
-ctx.fillStyle = title_gradient;
-ctx.fillRect(0, 0, canvas.width, skyH);
 
 var i = 0;
 function update_title(){
+	// title doesn't erase at every stage?
+	
+	// draw sky 
+	var sky_gradient=ctx.createLinearGradient(0, -47*(skyH*i)/2400, 0, 48*skyH-47*skyH*i/2400);
+	sky_gradient.addColorStop(0, '#212F3D'); 
+	sky_gradient.addColorStop(0.2, '#5D6D7E');
+	sky_gradient.addColorStop(0.25, '#F5B041');
+	sky_gradient.addColorStop(0.4, light_blue);
+	sky_gradient.addColorStop(0.7, light_blue);
+	sky_gradient.addColorStop(0.75, '#F5B041');	
+	sky_gradient.addColorStop(0.9, '#212F3D'); 
+	sky_gradient.addColorStop(1.0,'#212F3D');
+	ctx.fillStyle = sky_gradient;
+	ctx.fillRect(0, 0, groundW, skyH);
+	
 	if (title_status == true){
 		x1 = 399;
 		y1 = 478;
 		x2 = 399;
 		y2 = 477-i;
+		// draws a little tree... stage 2 branches??
 		if (i < 333){
-			//draw_line(x1,y1,x2,y2);
-			//draw_line(398,478,398 - i/3,477-i);
-			}
+			draw_line(x1,y1,x2,y2);
+			draw_line(398,478,398 - i/3,477-i);
 		}
+		if (i >= 333){
+			draw_line(x1,y1,x2,477-333);
+			draw_line(398,478,398 - 333/3,477-333);
+		}
+	}
 	
 	
-	if (i==10){
-		
+	if (i == 10){
+		// draw start game button
 		b1x = 578;
 		b1y = 504;
 		b1w = 164;
 		b1h = 54
-		
 		ctx.fillStyle = 'black';
 		ctx.fillRect(b1x,b1y,b1w,b1h)
 		// should have play button fade in...
@@ -134,7 +148,6 @@ function update_title(){
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			title_status = false;
 			i = 0;
-			var mainc = new character();
 			game();
 		}
 	});
@@ -146,29 +159,62 @@ function update_title(){
 	}
 }
 
-update_title();
-//game();
+/* Define Character Object */
 
 function character(){
-	this.name = 'Daniel';
+	this.name = 'Dimitri';
+	this.x = 100;
+	this.y = 100;
+	this.speedX = 0;
+	this.speedY = 0;
 	this.update = function(){ 
-		ctx.fillRect(0,0,10,10);
+		this.x = this.x += this.speedX
+		this.y = this.y += this.speedY
+		if (this.x < 50){
+			this.x = 50;
+		}
+		if (this.x > canvas.width - 50){
+			this.x = canvas.width - 50;
+		}
+		ctx.fillStyle = 'purple';
+		ctx.fillRect(this.x,this.y,50,50);
 	}
 }
 
-function generate_mountains(depth){
-	var n = depth;
+function add_constant(array, constant){
+	for (n = 0; n < array.length; n++){
+		array[n] += constant;
+	}
+}
+
+function generate_mountains(num_points){
+	var n = num_points;
+	var xstep = 3*groundW/n;
 	var mount_x = [];
 	var mount_y = [];
-	for (k = 0; k <= n; k++){
-		mount_x[k] = (k/n)*canvas.width;
+	mount_x[0] = -groundW;
+	mount_y[0] = groundH;
+	for (k = 1; k < n; k++){
+		mount_x[k] = -groundW + k*xstep;
 		mount_y[k] = groundY*Math.random();
 	}
+	mount_x[n] = 2*canvas.width;
+	mount_y[n] = groundH;
 	return [mount_x,mount_y];
 }
 
+function draw_mountain(x,y,fill,ground){
+	ctx.fillStyle = fill;
+	ctx.beginPath();
+	ctx.moveTo(x[0], y[0]);
+	for (m = 1; m <= x.length; m++){
+		ctx.lineTo(x[m],y[m]);
+	}
+	ctx.closePath();
+	ctx.fill();
+}
+
 function update_game(){
-	var mainc = new character();
 	
 	// set game time
 	var game_time = Math.floor(i % 2400); // quicker to only check mod on the edge surely.
@@ -178,14 +224,9 @@ function update_game(){
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	// draw sky
-	// night
-	
 		// light night sky - #5D6D7E
 		// dark night sky - #212F3D
 		// orange - #F5B041
-	// light night sky - #5D6D7E
-	// dark night sky - #212F3D
-	// '#F5B041'); //orange
 	//ctx.fillStyle = '#212F3D';
 	//ctx.fillRect(0, 0, canvas.width, skyH);
 	var sky_gradient=ctx.createLinearGradient(0, -47*(skyH*game_time)/2400, 0, 48*skyH-47*skyH*game_time/2400);
@@ -201,30 +242,23 @@ function update_game(){
 	ctx.fillRect(0, 0, groundW, skyH);
 	
 	// draw mountains?
-	ctx.fillStyle = 'brown';
-	ctx.beginPath();
-	ctx.moveTo(0, groundY);
-	for (m = 0; m <= 20; m++){
-		ctx.lineTo(xm[m],ym[m]);
-	}
-	ctx.lineTo(canvas.width,groundY);
-	ctx.closePath();
-	ctx.fill();
-	 
+
+	draw_mountain(xm,ym,'brown',groundY);
+
 	// draw ground
 	// ground is ontop of longer sky elements...
 	ctx.fillStyle = 'burlywood';
 	ctx.fillRect(groundX, groundY, groundW, groundH);
 	
 	// draw character
-	mainc.update();
+	main_char.update();
 	
 	// game clock
 	ctx.fillStyle = 'black';
 	var itext = game_time.toString();
 	ctx.fillText(itext, 100, 540);
 	var hours_text = time_h.toString();
-	ctx.fillText(hours_text, 200, 550);
+	ctx.fillText(hours_text, 60, 540);
 	ctx.fillStyle = 'brown';
 	i++;
 	setTimeout(update_game,update_speed);
@@ -232,7 +266,84 @@ function update_game(){
 
 function game(){
 
-ctx.fillRect(50, 50, 600, 400);
+window.addEventListener('keydown',check);
+window.addEventListener('keyup',check2);
+
+function check(e) { // on keypress
+    var code = e.keyCode;
+    if (code == 37) { // Left arrow key
+		main_char.speedX -= 1;
+		if (main_char.speedX < -char_speed_limit){
+			main_char.speedX = -char_speed_limit;
+		}
+		if (main_char.speedX > char_speed_limit){
+			main_char.speedX = char_speed_limit;
+		}
+		add_constant(xm,main_char.speedX/5); // move mountains corresponding to character speed
+	}
+    if (code == 38){ // Up arrow key
+		main_char.speedY -= 1;
+    }
+	if (code == 39){ // Right arrow key
+		main_char.speedX += 1;
+		if (main_char.speedX < -char_speed_limit){
+			main_char.speedX = -char_speed_limit;
+		}
+		if (main_char.speedX > char_speed_limit){
+			main_char.speedX = char_speed_limit;
+		}
+		add_constant(xm,main_char.speedX/5);
+     }
+	if (code == 40){ // Down arrow key
+		main_char.speedY += 1;	
+    }
+	if (code == 65) { // A key
+		add_constant(xm,main_char.speedX/5);
+		main_char.x -= 10;
+	}
+    if (code == 87){ // W key
+		main_char.y -= 10;
+    }
+	if (code == 68){ // D key
+		add_constant(xm,main_char.speedX);
+		main_char.x += 10;
+     }
+	if (code == 83){ // S key
+		main_char.y += 10;
+    }
+}
+
+function check2(e) { // on key release
+    var code = e.keyCode;
+    if (code == 37) { // Left arrow key
+		add_constant(xm,main);
+		main_char.speedX = 0;
+	}
+    if (code == 38){ // Up arrow key
+		main_char.speedY = 0;
+    }
+	if (code == 39){ // Right arrow key
+		main_char.speedX = 0;
+     }
+	if (code == 40){ // Down arrow key
+		main_char.speedY = 0;	
+    }
+	if (code == 65) { // A key
+		add_constant(xm,main_char.speedX);
+		main_char.x -= 10;
+	}
+    if (code == 87){ // W key
+		main_char.y -= 10;
+    }
+	if (code == 68){ // D key
+		add_constant(xm,main_char.speedX);
+		main_char.x += 10;
+     }
+	if (code == 83){ // S key
+		main_char.y += 10;
+    }
+}
+
 
 update_game();
 
@@ -243,11 +354,19 @@ canvas.addEventListener('click', function(event) {
     var x = event.clientX - rect.left;
     var y = event.clientY - rect.top;
     if (x > groundX && x < groundX + groundW && y > groundY && y < groundY + groundH){
+		ctx.fillStyle = 'brown';
+		ctx.fillRect(50, 50, 100, 100);
 		return false;
 	}
 });
 
+
 }
+
+//    MAIN    \\
+
+update_title();
+//game();
 
 
 }
