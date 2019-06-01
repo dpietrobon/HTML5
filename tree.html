@@ -38,7 +38,7 @@ var last_key = 40;
 var img = new Image();
 img.src = 'images/spritesheet_test.png';
 img.onload = function() {
-  init();
+  //init();
 };
 
 /* Color List */
@@ -205,7 +205,13 @@ function character(){
 	}
 	this.draw = function(){
 		if (last_key==40){ // down arrow key
-			ctx.drawImage(img, 0, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+			if (this.speedY !== 0){
+				var ttime = i % 5;
+				ctx.drawImage(img, 10*ttime,23, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+			}
+			else {
+				ctx.drawImage(img, 0, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+			}
 		}
 		else if (last_key == 38){ // up arrow key
 			ctx.drawImage(img, 20, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
@@ -268,8 +274,11 @@ function draw_mountain(x,y,fill,ground){
 	ctx.fill();
 }
 
-function generate_tree(depth,genetic){
+function tree(depth,genetic){
 	this.age = 0; 
+	this.g = genetic;
+	this.x0 = groundW*Math.random() 
+	this.y0 = Math.random()*(groundY-100+1) + 100;
 }
 
 /* Main Game Update Loop - Update to setInterval Method? */
@@ -325,6 +334,8 @@ function update_game(){
 }
 
 function game(){
+
+var game_time = 2;
 
 window.addEventListener('keydown',check);
 window.addEventListener('keyup',check2);
@@ -408,7 +419,6 @@ function check2(e) { // on key release
 function last_key_pressed(string){
 	return string;	
 }
-
 
 update_game();
 
