@@ -29,6 +29,17 @@ window.onload = function(){
 var update_speed = 50;
 var main_char = new character();
 var char_speed_limit = 10;
+var stars_x = [];
+var stars_y = [];
+var last_key = 40;
+
+// Character Images
+
+var img = new Image();
+img.src = 'images/spritesheet_test.png';
+img.onload = function() {
+  init();
+};
 
 /* Color List */
 var dark_brown = '#663333';
@@ -37,12 +48,18 @@ var light_blue = '#85C1E9';
 var pink_brown = '#EDBB99';
 var orange_brown = '#F0C598';
 
-// Initialize Game Canvas
+// Initialize Game Canvas 1
 var canvas = document.getElementById('canvas');
 canvas.width  = 1000;
 canvas.height = 600;
 var ctx = canvas.getContext('2d');
 ctx.globalCompositeOperation = 'source-over'; // objects are printed over one another
+// Turn off canvas image blurring
+ctx.webkitImageSmoothingEnabled = false;
+ctx.mozImageSmoothingEnabled = false;
+ctx.imageSmoothingEnabled = false;
+
+
 var title_status = true; // begin game at title screen.
 
 // Ground and sky dimensions
@@ -51,20 +68,29 @@ var groundY = (1/3)*canvas.height;
 var groundW = canvas.width;
 var groundH = (2/3)*canvas.height;
 var skyH = canvas.height - groundH;
+var skyW = groundW;
+var num_stars = 500;
 
-// generate mountains
-var mount = generate_mountains(33);
+// Generate Stars 
+for (n = 0; n < num_stars; n++){
+	stars_x[n] = skyW*Math.random();
+	stars_y[n] = (skyH+100)*Math.random();
+} 
+
+// Generate mountains
+var num_mount = 111;
+var mount = generate_mountains(num_mount);
 var xm = mount[0];
 var ym = mount[1];
 
-// draw ground
+// Draw ground
 var ground_grad=ctx.createLinearGradient(0, 200, 0, 200+groundH);
 ground_grad.addColorStop(0, orange_brown);
 ground_grad.addColorStop(1, dark_brown);
 ctx.fillStyle = ground_grad;
 ctx.fillRect(groundX, groundY, canvas.width, groundH);
 
-// horizon line
+// Horizon line
 ctx.beginPath();
 ctx.moveTo(0, 200);
 ctx.lineTo(canvas.width, 200);
@@ -162,9 +188,9 @@ function update_title(){
 /* Define Character Object */
 
 function character(){
-	this.name = 'Dimitri';
-	this.x = 100;
-	this.y = 100;
+	this.name = 'main_character';
+	this.x = 200;
+	this.y = 300;
 	this.speedX = 0;
 	this.speedY = 0;
 	this.update = function(){ 
@@ -176,10 +202,29 @@ function character(){
 		if (this.x > canvas.width - 50){
 			this.x = canvas.width - 50;
 		}
-		ctx.fillStyle = 'purple';
-		ctx.fillRect(this.x,this.y,50,50);
+	}
+	this.draw = function(){
+		if (last_key==40){ // down arrow key
+			ctx.drawImage(img, 0, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+		}
+		else if (last_key == 38){ // up arrow key
+			ctx.drawImage(img, 20, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+		}
+		else if (last_key == 37){ // left arrow key
+			ctx.drawImage(img, 30, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+		}
+		else if (last_key == 39){ // right arrow key
+			ctx.drawImage(img, 10, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+		}
+		else {
+			ctx.drawImage(img, 0, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+		}
 	}
 }
+
+/* Scenery Functions */
+
+// Mountain Functions
 
 function add_constant(array, constant){
 	for (n = 0; n < array.length; n++){
@@ -196,11 +241,20 @@ function generate_mountains(num_points){
 	mount_y[0] = groundH;
 	for (k = 1; k < n; k++){
 		mount_x[k] = -groundW + k*xstep;
-		mount_y[k] = groundY*Math.random();
+		mount_y[k] = Math.random()*(groundY-100+1) + 100; // Math.random() * (end - start + 1) + start) random between start and end
 	}
 	mount_x[n] = 2*canvas.width;
 	mount_y[n] = groundH;
 	return [mount_x,mount_y];
+}
+
+function draw_stars(skyW,skyH,length,time){
+	ctx.fillStyle = 'white'
+	if (time < 400){
+		for (n = 0; n < length; n++){
+			ctx.fillRect(stars_x[n],stars_y[n]-time/10,1,1)
+		}
+	}
 }
 
 function draw_mountain(x,y,fill,ground){
@@ -214,6 +268,12 @@ function draw_mountain(x,y,fill,ground){
 	ctx.fill();
 }
 
+function generate_tree(depth,genetic){
+	this.age = 0; 
+}
+
+/* Main Game Update Loop - Update to setInterval Method? */
+
 function update_game(){
 	
 	// set game time
@@ -224,11 +284,6 @@ function update_game(){
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	// draw sky
-		// light night sky - #5D6D7E
-		// dark night sky - #212F3D
-		// orange - #F5B041
-	//ctx.fillStyle = '#212F3D';
-	//ctx.fillRect(0, 0, canvas.width, skyH);
 	var sky_gradient=ctx.createLinearGradient(0, -47*(skyH*game_time)/2400, 0, 48*skyH-47*skyH*game_time/2400);
 	sky_gradient.addColorStop(0, '#212F3D'); 
 	sky_gradient.addColorStop(0.2, '#5D6D7E');
@@ -241,7 +296,11 @@ function update_game(){
 	ctx.fillStyle = sky_gradient;
 	ctx.fillRect(0, 0, groundW, skyH);
 	
-	// draw mountains?
+	// draw stars 
+	
+	draw_stars(skyW,skyH,num_stars,game_time);
+	
+	// draw mountains
 
 	draw_mountain(xm,ym,'brown',groundY);
 
@@ -252,6 +311,7 @@ function update_game(){
 	
 	// draw character
 	main_char.update();
+	main_char.draw();
 	
 	// game clock
 	ctx.fillStyle = 'black';
@@ -279,7 +339,7 @@ function check(e) { // on keypress
 		if (main_char.speedX > char_speed_limit){
 			main_char.speedX = char_speed_limit;
 		}
-		add_constant(xm,main_char.speedX/5); // move mountains corresponding to character speed
+		add_constant(xm,-main_char.speedX/10); // move mountains corresponding to character speed
 	}
     if (code == 38){ // Up arrow key
 		main_char.speedY -= 1;
@@ -292,25 +352,26 @@ function check(e) { // on keypress
 		if (main_char.speedX > char_speed_limit){
 			main_char.speedX = char_speed_limit;
 		}
-		add_constant(xm,main_char.speedX/5);
+		add_constant(xm,-main_char.speedX/10);
      }
 	if (code == 40){ // Down arrow key
 		main_char.speedY += 1;	
     }
 	if (code == 65) { // A key
-		add_constant(xm,main_char.speedX/5);
+		add_constant(xm,-main_char.speedX/10);
 		main_char.x -= 10;
 	}
     if (code == 87){ // W key
 		main_char.y -= 10;
     }
 	if (code == 68){ // D key
-		add_constant(xm,main_char.speedX);
+		add_constant(xm,-main_char.speedX/10);
 		main_char.x += 10;
      }
 	if (code == 83){ // S key
 		main_char.y += 10;
     }
+	last_key = last_key_pressed(code); // get last key pressed
 }
 
 function check2(e) { // on key release
@@ -342,6 +403,10 @@ function check2(e) { // on key release
 	if (code == 83){ // S key
 		main_char.y += 10;
     }
+}
+
+function last_key_pressed(string){
+	return string;	
 }
 
 
