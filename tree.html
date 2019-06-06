@@ -11,9 +11,15 @@ canvas {
     padding-right: 0;
     margin-left: auto;
     margin-right: auto;
-    display: block;
+	display: block;
+}
+
+p {
+	text-align:center;
 }
 </style>
+
+<p> HTML Canvas Game </p>
 
 <canvas id="canvas" style="border: 1px solid black;" width = 100 height = 100>
 Your browser does not support the HTML5 canvas tag.
@@ -27,8 +33,7 @@ window.onload = function(){
 
 // Declare Global Variables
 var update_speed = 50;
-var main_char = new character();
-var char_speed_limit = 10;
+var char_speed_limit = 6;
 var stars_x = [];
 var stars_y = [];
 var last_key = 40;
@@ -50,15 +55,15 @@ var orange_brown = '#F0C598';
 
 // Initialize Game Canvas 1
 var canvas = document.getElementById('canvas');
-canvas.width  = 1000;
-canvas.height = 600;
 var ctx = canvas.getContext('2d');
+ctx.canvas.width  = window.innerWidth-100;
+ctx.canvas.height = window.innerHeight-60; // pretty good but image blur?
 ctx.globalCompositeOperation = 'source-over'; // objects are printed over one another
 // Turn off canvas image blurring
 ctx.webkitImageSmoothingEnabled = false;
 ctx.mozImageSmoothingEnabled = false;
 ctx.imageSmoothingEnabled = false;
-
+ctx.msImageSmoothingEnabled = false;
 
 var title_status = true; // begin game at title screen.
 
@@ -70,6 +75,10 @@ var groundH = (2/3)*canvas.height;
 var skyH = canvas.height - groundH;
 var skyW = groundW;
 var num_stars = 500;
+
+
+
+var main_char = new character();
 
 // Generate Stars 
 for (n = 0; n < num_stars; n++){
@@ -84,7 +93,7 @@ var xm = mount[0];
 var ym = mount[1];
 
 // Draw ground
-var ground_grad=ctx.createLinearGradient(0, 200, 0, 200+groundH);
+var ground_grad = ctx.createLinearGradient(0, 200, 0, 200+groundH);
 ground_grad.addColorStop(0, orange_brown);
 ground_grad.addColorStop(1, dark_brown);
 ctx.fillStyle = ground_grad;
@@ -105,13 +114,41 @@ function draw_line(x1,y1,x2,y2){
 	ctx.stroke();
 }
 
+// Generate Trees
+
+var num_trees = 33;
+var tree_list = [];
+
+// random tree generation test:
+/* var tree_randx = [];
+var tree_randy = [];
+for (trc = 0; trc < 4; trc++){
+	tree_randx[trc] = (ctx.canvas.width)*Math.random();
+	tree_randy[trc] = (ctx.canvas.height)*Math.random();
+} */
+
+var tree_x = [0,0,0,-50,0,50];
+var tree_y = [0,-100,0,-66,0,-77];
+
+for (tc = 0; tc < num_trees; tc++){
+	(tree_list).push(new tree(1,tree_x,tree_y)); 
+}
+//console.log(tree_list);
 
 var i = 0;
 function update_title(){
-	// title doesn't erase at every stage?
+	// title doesn't erase at every stage? // we don't clear and we don't erase the button ... but maybe it's okay??
+	
+	// canvas sass?
+	//canvas.width  = window.innerWidth-100;
+	//canvas.height = window.innerHeight-60; // pretty good but image blur
+	
+	// clear all
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	
 	// draw sky 
-	var sky_gradient=ctx.createLinearGradient(0, -47*(skyH*i)/2400, 0, 48*skyH-47*skyH*i/2400);
+	var sky_gradient = ctx.createLinearGradient(0, -47*(skyH*i)/2400, 0, 48*skyH-47*skyH*i/2400);
+	//groundW = canvas.width;
 	sky_gradient.addColorStop(0, '#212F3D'); 
 	sky_gradient.addColorStop(0.2, '#5D6D7E');
 	sky_gradient.addColorStop(0.25, '#F5B041');
@@ -139,27 +176,30 @@ function update_title(){
 		}
 	}
 	
+	// Draw Start Button
+	// Button Variables
+	var b1x = 0.8*canvas.width;
+	var b1y = 0.8*canvas.height;
+	const b1w = 126 ;
+	const b1h = 46
+	if (i < 30 && i > 10){ // button fade in
+		ctx.globalAlpha = (i-10)/20;
+	}
 	
-	if (i == 10){
-		// draw start game button
-		b1x = 578;
-		b1y = 504;
-		b1w = 164;
-		b1h = 54
+	if (i > 10){
 		ctx.fillStyle = 'black';
 		ctx.fillRect(b1x,b1y,b1w,b1h)
 		// should have play button fade in...
 		//var alpha = 0.1; 
         //ctx.globalAlpha = alpha;    
 		ctx.fillStyle = 'white';
-		ctx.fillRect(580,506,160,50)
-		ctx.globalAlpha = 1.0
-		ctx.font = '24px Arial';
+		ctx.fillRect(b1x+1,b1y+1,b1w-4,b1h-4)
+		ctx.font = '20px Arial';
 		ctx.fillStyle = 'black';
 		var button_text = 'Start Game'
-		ctx.fillText(button_text, 600, 540);
+		ctx.fillText(button_text, b1x+10, b1y+30);
 		ctx.fillStyle = 'brown';
-	
+		ctx.globalAlpha = 1.0;
 	}
 	
 	if (i==10){
@@ -189,8 +229,8 @@ function update_title(){
 
 function character(){
 	this.name = 'main_character';
-	this.x = 200;
-	this.y = 300;
+	this.x = canvas.width/2;
+	this.y = 0.8*canvas.height;
 	this.speedX = 0;
 	this.speedY = 0;
 	this.update = function(){ 
@@ -206,7 +246,7 @@ function character(){
 	this.draw = function(){
 		if (last_key==40){ // down arrow key
 			if (this.speedY !== 0){
-				var ttime = i % 5;
+				var ttime = Math.floor((i % 30*8)/30);
 				ctx.drawImage(img, 10*ttime,23, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
 			}
 			else {
@@ -217,10 +257,22 @@ function character(){
 			ctx.drawImage(img, 20, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
 		}
 		else if (last_key == 37){ // left arrow key
-			ctx.drawImage(img, 30, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+			if (this.speedX !== 0){
+				var ttime = Math.floor((i % 30*4)/30);
+				ctx.drawImage(img,10*ttime,3*23,10,23,this.x,this.y,(img.x)+4*10,(img.y)+4*23);
+			}
+			else {	
+				ctx.drawImage(img, 30, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+			}
 		}
 		else if (last_key == 39){ // right arrow key
-			ctx.drawImage(img, 10, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+			if (this.speedX !== 0){
+				var ttime = Math.floor((i % 30*4)/30);
+				ctx.drawImage(img,10*ttime,2*23,10,23,this.x,this.y,(img.x)+4*10,(img.y)+4*23);
+			}
+			else {
+				ctx.drawImage(img, 10, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
+			}
 		}
 		else {
 			ctx.drawImage(img, 0, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
@@ -254,12 +306,33 @@ function generate_mountains(num_points){
 	return [mount_x,mount_y];
 }
 
+/* Draw Stars Function */
+
 function draw_stars(skyW,skyH,length,time){
 	ctx.fillStyle = 'white'
-	if (time < 400){
+	if (time >= 2000 || time < 400){
 		for (n = 0; n < length; n++){
-			ctx.fillRect(stars_x[n],stars_y[n]-time/10,1,1)
+			if (time < 400){
+				ctx.fillRect(stars_x[n],stars_y[n]-(time+400)/10,1,1)
+				}
+			if (time >= 2000){
+				ctx.fillRect(stars_x[n],stars_y[n]-(time-2000)/10,1,1)
+			}
 		}
+	}
+	else if (time >= 400 && time < 600){
+        ctx.globalAlpha = 1-((time-400)/200);
+		for (n = 0; n < length; n++){
+			ctx.fillRect(stars_x[n],stars_y[n]-(time+400)/10,1,1);
+		}
+		ctx.globalAlpha = 1.0;
+	}
+	else if (time >= 1800 && time < 2000){
+        ctx.globalAlpha = 1-((time-400)/200);
+		for (n = 0; n < length; n++){
+			ctx.fillRect(stars_x[n],stars_y[n]-(time-2000)/10,1,1);
+		}
+		ctx.globalAlpha = 1.0;
 	}
 }
 
@@ -274,16 +347,38 @@ function draw_mountain(x,y,fill,ground){
 	ctx.fill();
 }
 
-function tree(depth,genetic){
+/* Define Tree Objects */ 
+//var tn = 0;
+function tree(depth,tgenex,tgeney){
 	this.age = 0; 
-	this.g = genetic;
-	this.x0 = groundW*Math.random() 
-	this.y0 = Math.random()*(groundY-100+1) + 100;
+	this.max_size = 60;
+	this.max_age = 70;
+	this.r1 = Math.random();
+	this.x0 = this.r1*(canvas.width); 
+	if (this.r1 < 0.3){
+		this.y0 = Math.random()*(canvas.height-skyH)+skyH;
+	} else {
+		this.y0 = Math.random()*(canvas.height-2*skyH)+skyH;
+	}
+	this.scale = (this.y0-skyH)/200;
+	this.gx = tgenex;
+	this.gy = tgeney;
+	// initial genes drawn with root at canvas [0,0] --> [+-x,-y]
+	this.draw = function(){
+		for (tn = 0; tn < (this.gx.length)/2; tn++){
+			draw_line(this.scale*this.gx[2*tn]+this.x0,this.scale*this.gy[2*tn]+this.y0,this.scale*this.gx[2*tn+1]+this.x0,this.scale*this.gy[2*tn+1]+this.y0);
+		}
+	}
 }
 
 /* Main Game Update Loop - Update to setInterval Method? */
 
 function update_game(){
+
+	// canvas sass?
+	ctx.canvas.width  = window.innerWidth-100;
+	ctx.canvas.height = window.innerHeight-60; // pretty good but image blur
+	ctx.imageSmoothingEnabled = false; // turn off image blur - BREAKS I.E COMPATIBILITY???
 	
 	// set game time
 	var game_time = Math.floor(i % 2400); // quicker to only check mod on the edge surely.
@@ -318,6 +413,14 @@ function update_game(){
 	ctx.fillStyle = 'burlywood';
 	ctx.fillRect(groundX, groundY, groundW, groundH);
 	
+	// draw tree???
+	//draw_line(0,0,100,100);
+	ctx.fillStyle = 'white'
+	for (j = 0; j < num_trees; j++){
+		tree_list[j].draw();
+	}
+
+
 	// draw character
 	main_char.update();
 	main_char.draw();
@@ -367,6 +470,12 @@ function check(e) { // on keypress
      }
 	if (code == 40){ // Down arrow key
 		main_char.speedY += 1;	
+		if (main_char.speedY < -char_speed_limit){
+			main_char.speedY = -char_speed_limit;
+		}
+		if (main_char.speedY > char_speed_limit){
+			main_char.speedY = char_speed_limit;
+		}
     }
 	if (code == 65) { // A key
 		add_constant(xm,-main_char.speedX/10);
@@ -388,7 +497,6 @@ function check(e) { // on keypress
 function check2(e) { // on key release
     var code = e.keyCode;
     if (code == 37) { // Left arrow key
-		add_constant(xm,main);
 		main_char.speedX = 0;
 	}
     if (code == 38){ // Up arrow key
