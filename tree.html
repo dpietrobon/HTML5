@@ -43,8 +43,17 @@ var last_key = 40;
 var img = new Image();
 img.src = 'images/spritesheet_test.png';
 img.onload = function() {
-  //init();
+	return true;
 };
+
+// Scenery Images
+
+var stump_img = new Image();
+stump_img.src = 'images/stump.png';
+
+
+var stump_axe_img = new Image();
+stump_axe_img.src = 'images/stump_axe.png';
 
 /* Color List */
 var dark_brown = '#663333';
@@ -119,14 +128,6 @@ function draw_line(x1,y1,x2,y2){
 var num_trees = 33;
 var tree_list = [];
 
-// random tree generation test:
-/* var tree_randx = [];
-var tree_randy = [];
-for (trc = 0; trc < 4; trc++){
-	tree_randx[trc] = (ctx.canvas.width)*Math.random();
-	tree_randy[trc] = (ctx.canvas.height)*Math.random();
-} */
-
 var tree_x = [0,0,0,-50,0,50];
 var tree_y = [0,-100,0,-66,0,-77];
 
@@ -134,6 +135,7 @@ for (tc = 0; tc < num_trees; tc++){
 	(tree_list).push(new tree(1,tree_x,tree_y)); 
 }
 //console.log(tree_list);
+
 
 var i = 0;
 function update_title(){
@@ -178,8 +180,8 @@ function update_title(){
 	
 	// Draw Start Button
 	// Button Variables
-	var b1x = 0.8*canvas.width;
-	var b1y = 0.8*canvas.height;
+	var b1x = 0.8*ctx.canvas.width;
+	var b1y = 0.8*ctx.canvas.height;
 	const b1w = 126 ;
 	const b1h = 46
 	if (i < 30 && i > 10){ // button fade in
@@ -221,7 +223,7 @@ function update_title(){
 	
 	i++;
 	if (title_status == true){
-		setTimeout(update_title,update_speed);
+		setTimeout(update_title,update_speed); //setInterval?
 	}
 }
 
@@ -244,9 +246,10 @@ function character(){
 		}
 	}
 	this.draw = function(){
-		if (last_key==40){ // down arrow key
+		var ttime;
+		if (last_key == 40){ // down arrow key
 			if (this.speedY !== 0){
-				var ttime = Math.floor((i % 30*8)/30);
+				ttime = Math.floor((i % 30*8)/30);
 				ctx.drawImage(img, 10*ttime,23, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
 			}
 			else {
@@ -258,7 +261,7 @@ function character(){
 		}
 		else if (last_key == 37){ // left arrow key
 			if (this.speedX !== 0){
-				var ttime = Math.floor((i % 30*4)/30);
+				ttime = Math.floor((i % 30*4)/30);
 				ctx.drawImage(img,10*ttime,3*23,10,23,this.x,this.y,(img.x)+4*10,(img.y)+4*23);
 			}
 			else {	
@@ -267,13 +270,17 @@ function character(){
 		}
 		else if (last_key == 39){ // right arrow key
 			if (this.speedX !== 0){
-				var ttime = Math.floor((i % 30*4)/30);
+				ttime = Math.floor((i % 30*4)/30);
 				ctx.drawImage(img,10*ttime,2*23,10,23,this.x,this.y,(img.x)+4*10,(img.y)+4*23);
 			}
 			else {
 				ctx.drawImage(img, 10, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
 			}
 		}
+		else if (last_key == 0 || last_key == 32){
+			ttime = Math.floor((i % 30*3)/30);
+			ctx.drawImage(img,16*ttime,92,16,28,this.x-14,this.y-20,(img.x)+4*16,(img.y)+4*28);
+			}
 		else {
 			ctx.drawImage(img, 0, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
 		}
@@ -413,12 +420,17 @@ function update_game(){
 	ctx.fillStyle = 'burlywood';
 	ctx.fillRect(groundX, groundY, groundW, groundH);
 	
-	// draw tree???
-	//draw_line(0,0,100,100);
+	// draw trees
 	ctx.fillStyle = 'white'
 	for (j = 0; j < num_trees; j++){
-		tree_list[j].draw();
+		// tree_list[j].draw();
 	}
+	
+	// draw stump without axe
+	ctx.drawImage(stump_img, 0, 0, 16, 16, canvas.width/2, canvas.height/2, 4*16, 4*16);
+	
+	// draw stump with axe
+	ctx.drawImage(stump_axe_img, 0, 0, 15, 18, canvas.width/4, canvas.height/2-20, 4*15, 4*18);
 
 
 	// draw character
