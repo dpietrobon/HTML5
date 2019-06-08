@@ -76,7 +76,7 @@ ctx.msImageSmoothingEnabled = false;
 
 var title_status = true; // begin game at title screen.
 
-// Ground and sky dimensions
+// Ground and sky dimensions - later update dynamically with window resize.
 var groundX = 0;
 var groundY = (1/3)*canvas.height;
 var groundW = canvas.width;
@@ -142,8 +142,9 @@ function update_title(){
 	// title doesn't erase at every stage? // we don't clear and we don't erase the button ... but maybe it's okay??
 	
 	// canvas sass?
-	//canvas.width  = window.innerWidth-100;
-	//canvas.height = window.innerHeight-60; // pretty good but image blur
+	ctx.canvas.width  = window.innerWidth-100;
+	ctx.canvas.height = window.innerHeight-60; // pretty good but image blur
+	ctx.imageSmoothingEnabled = false; // turn off image blur - BREAKS I.E COMPATIBILITY???
 	
 	// clear all
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -182,7 +183,7 @@ function update_title(){
 	// Button Variables
 	var b1x = 0.8*ctx.canvas.width;
 	var b1y = 0.8*ctx.canvas.height;
-	const b1w = 126 ;
+	const b1w = 126;
 	const b1h = 46
 	if (i < 30 && i > 10){ // button fade in
 		ctx.globalAlpha = (i-10)/20;
@@ -212,6 +213,8 @@ function update_title(){
 		var rect = canvas.getBoundingClientRect();
 		var x = event.clientX - rect.left;
 		var y = event.clientY - rect.top;
+		b1x = 0.8*ctx.canvas.width;
+		b1y = 0.8*ctx.canvas.height;
 		if (x > b1x && x < b1x + b1w && y > b1y && y < b1y + b1h){
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			title_status = false;
@@ -235,6 +238,8 @@ function character(){
 	this.y = 0.8*canvas.height;
 	this.speedX = 0;
 	this.speedY = 0;
+	this.height = 23;
+	this.state = 3; // 0 = facing left 1 = up 2 = right 3 = down
 	this.update = function(){ 
 		this.x = this.x += this.speedX
 		this.y = this.y += this.speedY
@@ -248,6 +253,7 @@ function character(){
 	this.draw = function(){
 		var ttime;
 		if (last_key == 40){ // down arrow key
+			this.state = 3;
 			if (this.speedY !== 0){
 				ttime = Math.floor((i % 30*8)/30);
 				ctx.drawImage(img, 10*ttime,23, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
@@ -279,8 +285,13 @@ function character(){
 		}
 		else if (last_key == 0 || last_key == 32){
 			ttime = Math.floor((i % 30*3)/30);
-			ctx.drawImage(img,16*ttime,92,16,28,this.x-14,this.y-20,(img.x)+4*16,(img.y)+4*28);
+			if (main_char.state == 0){
+				ctx.drawImage(img,16*ttime,92,16,28,this.x-14,this.y-20,(img.x)+4*16,(img.y)+4*28);
 			}
+			else {
+				ctx.drawImage(img,16*ttime,120,16,28,this.x-14,this.y-20,(img.x)+4*16,(img.y)+4*28);
+			}
+		}
 		else {
 			ctx.drawImage(img, 0, 0, 10, 23, this.x, this.y, (img.x)+4*10, (img.y)+4*23);
 		}
@@ -405,11 +416,11 @@ function update_game(){
 	sky_gradient.addColorStop(0.9, '#212F3D'); 
 	sky_gradient.addColorStop(1.0,'#212F3D');
 	ctx.fillStyle = sky_gradient;
-	ctx.fillRect(0, 0, groundW, skyH);
+	ctx.fillRect(0, 0, canvas.width, skyH);
 	
 	// draw stars 
 	
-	draw_stars(skyW,skyH,num_stars,game_time);
+	draw_stars(canvas.width,skyH,num_stars,game_time);
 	
 	// draw mountains
 
@@ -417,6 +428,7 @@ function update_game(){
 
 	// draw ground
 	// ground is ontop of longer sky elements...
+	groundY = (1/3)*canvas.height;
 	ctx.fillStyle = 'burlywood';
 	ctx.fillRect(groundX, groundY, groundW, groundH);
 	
@@ -459,34 +471,53 @@ function check(e) { // on keypress
     var code = e.keyCode;
     if (code == 37) { // Left arrow key
 		main_char.speedX -= 1;
+		main_char.state = 0;
+		/*
 		if (main_char.speedX < -char_speed_limit){
 			main_char.speedX = -char_speed_limit;
 		}
 		if (main_char.speedX > char_speed_limit){
 			main_char.speedX = char_speed_limit;
 		}
-		add_constant(xm,-main_char.speedX/10); // move mountains corresponding to character speed
+		*/
+		add_constant(xm,-main_char.speedX/20); // move mountains corresponding to character speed
 	}
     if (code == 38){ // Up arrow key
 		main_char.speedY -= 1;
+		main_char.state = 1;
+		if (main_char.y <= groundY){
+			main_char.y = groundY;
+			main_char.speedY = 0;
+		}
     }
 	if (code == 39){ // Right arrow key
 		main_char.speedX += 1;
+		main_char.state = 2;
+		// speedy movement...
+		/* 
 		if (main_char.speedX < -char_speed_limit){
 			main_char.speedX = -char_speed_limit;
 		}
 		if (main_char.speedX > char_speed_limit){
 			main_char.speedX = char_speed_limit;
 		}
-		add_constant(xm,-main_char.speedX/10);
+		*/ 
+		add_constant(xm,-main_char.speedX/20);
      }
 	if (code == 40){ // Down arrow key
-		main_char.speedY += 1;	
+		main_char.speedY += 1;
+		main_char.state = 3;
+		/*
 		if (main_char.speedY < -char_speed_limit){
 			main_char.speedY = -char_speed_limit;
 		}
 		if (main_char.speedY > char_speed_limit){
 			main_char.speedY = char_speed_limit;
+		}
+		*/
+		if (main_char.y >= canvas.height - main_char.height*4 - 10){
+			main_char.y = canvas.height - main_char.height*4 - 10;
+			main_char.speedY = 0;
 		}
     }
 	if (code == 65) { // A key
