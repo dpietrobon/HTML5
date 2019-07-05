@@ -1,0 +1,504 @@
+<html>
+<title> Game Test </title>
+
+<style>
+canvas {
+    /* background-color: #E5E7E9; */
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+	display: block;
+}
+
+p {
+	text-align:center;
+}
+</style>
+
+<!--
+<p> The TIME Wizard </p>
+-->
+
+<canvas id="canvas" style="border: 1px solid black;" width = 100 height = 100>
+Your browser does not support the HTML5 canvas tag.
+</canvas>
+
+
+<script>
+
+// Declare Global:
+// Constants
+var update_speed = 33; // game update speed (in mseconds)
+
+// Variables
+var last_key = 40; // last key pressed defaults to: down arrow key keyCode == 40 (down = character facing screen)
+var last_arrow_key = 40;
+var last_key_released = 40;
+var i = 0; // timing variable
+var fire_code = 70;
+
+// Initialize Game Canvas
+var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');
+ctx.canvas.width  = window.innerWidth-100;
+ctx.canvas.height = window.innerHeight-60; // pretty good but image blur?
+ctx.globalCompositeOperation = 'source-over'; // objects are printed over one another
+// Turn off canvas image blurring
+ctx.webkitImageSmoothingEnabled = false;
+ctx.mozImageSmoothingEnabled = false;
+ctx.imageSmoothingEnabled = false;
+ctx.msImageSmoothingEnabled = false;
+
+
+// Mountain Background Image
+var mount_bg = new Image();
+mount_bg.src = 'mountains_test.png';
+mount_bg.onload = function() {
+	return true;
+};
+var mount_x = -3333;
+var mount_y = 0;
+
+
+// Character globals ??
+
+var max_health = 1000;
+var max_mana = 1000;
+var mana_increment = 1;
+var health_increment = 1;
+
+var rune_list = [];
+var rune_timer = 0;
+var num_runes_cast = 0;
+var rune_type = 'air';
+
+var fireball_timer = 0;
+var fireball_x = 100;
+var fireball_y = 100;
+var fireball_cost = 200;
+var fireball_key;
+
+// Initialize Main Character
+var mc = new character();
+
+/* Define Character Object */
+
+function character(){
+	this.name = 'mc';
+	this.x = 0.5*canvas.width;
+	this.y = 0.5*canvas.height;
+	this.old_x = this.x;
+	this.old_y = this.y;
+	this.speedX = 0;
+	this.speedY = 0;
+	this.width = 40;
+	this.height = 40;
+	this.state = 3; // 0 = facing left 1 = up 2 = right 3 = down
+	this.health = max_health;
+	this.mana = max_mana;
+	this.alive = true;
+	this.in_air = true;
+	this.spell_cast = false;
+	this.fireball_cast = false;
+	this.update = function(){ 
+		this.old_x = this.x;
+		this.old_y = this.y;
+		
+		// movement with no intervention
+		this.x = this.x += this.speedX
+		// gravity
+		this.speedY = this.speedY + 3;
+		this.y = this.y += this.speedY 
+		
+		
+		// This method is (maybe) not as 'bouncy' here than the same inside the event listeners...
+		if (this.x < 0.4*canvas.width){
+			this.x = 0.4*canvas.width;
+		} // except in the case where we are 'hitting the edge' of the scene...
+		if (this.x > 0.6*canvas.width - this.width){
+			this.x = 0.6*canvas.width - this.width;
+		}
+		if (this.y > canvas.height - this.height){
+			this.y = canvas.height - this.height;
+			this.in_air = false;
+			//this.alive = false;
+			this.speedY = 0;
+		}
+		
+		if (map[37] == false && map[39] == false){
+			this.speedX = 0;
+		}
+		
+		// movement landing on a platform
+		
+		// if we are close to a platform ... 
+		
+		for (p_num = 0; p_num < Platforms.length; p_num++){
+			if (Math.abs(mc.x-Platforms[p_num].x) < canvas.width){
+				if (Platforms[p_num].x < this.old_x + this.width && this.old_x < Platforms[p_num].x + Platforms[p_num].width
+					&& this.old_y + this.height < Platforms[p_num].y){ 
+					if (Platforms[p_num].x < this.x + this.width && this.x < Platforms[p_num].x + Platforms[p_num].width 
+						&& this.y + this.height > Platforms[p_num].y){
+						this.y = Platforms[p_num].y - this.height - 1;
+						this.speedY = -0.2*this.speedY;
+						this.in_air = false;
+					}
+				}				
+			}
+		}
+		
+	}
+	
+	this.draw = function(){
+		ctx.fillRect(this.x,this.y,this.width,this.height);
+	}
+}
+
+function draw_circle(x,y,r,color){
+	ctx.beginPath();
+	ctx.fillStyle = color;
+	ctx.arc(x,y,r,0,2*Math.PI);
+	ctx.fill();
+	ctx.stroke();
+}
+
+var enemy = new enemy(100,100);
+
+function enemy(x,y){
+	this.x = x;
+	this.y = y;
+	this.width = 100;
+	this.height = 100;
+	this.draw = function(){
+		ctx.fillStyle = 'red';
+		ctx.fillRect(this.x,this.y,this.width,this.height);
+	}
+	this.update = function(){
+		this.x += 1;
+	}
+}
+
+var num_stairs = 14;
+var num_low = 20;
+var Platforms = [];
+// Initialize game platforms
+// low platforms
+for (n = 0; n < num_low; n++){
+	Platforms.push(new platform((-5+n)*canvas.width,0.9*canvas.height,canvas.width,0.05*canvas.height));
+}
+// staircase
+for (n = 0; n < num_stairs; n++){
+	Platforms.push(new platform((0.25+0.5*n)*canvas.width,(0.8-0.05*n)*canvas.height,0.5*canvas.width,0.05*canvas.height));
+}
+
+function platform(x,y,w,h){
+	this.x = x;
+	this.y = y;
+	this.width = w;
+	this.height = h;
+	this.draw = function(){
+		ctx.fillStyle = 'black';
+		ctx.fillRect(this.x,this.y,this.width,this.height);
+	}
+}
+
+function fireball(x,y,time,key){
+	if (key == 37){
+		draw_circle(x-(canvas.width/30)*time, y, 5+10*time,'red');
+	}
+	if (key == 38){
+		draw_circle(x, y-(canvas.height/30)*time, 5+10*time,'red');
+	}
+	if (key == 39){
+		draw_circle(x+(canvas.width/30)*time,y,5+10*time,'red');
+	}
+	if (key == 40){
+		draw_circle(x, y+(canvas.height/30)*time,5+10*time,'red');
+	}
+}
+
+// Initialize update_game() globals
+
+var char_damaged = false;
+
+var dev_display = true;
+
+/* Main Game Update Loop - Update to setInterval Method? */
+
+function update_game(){
+
+	// canvas sass? screen resizing compatibility requirements...
+	ctx.canvas.width  = window.innerWidth-40;
+	ctx.canvas.height = window.innerHeight-20; // pretty good but image blur
+	ctx.imageSmoothingEnabled = false; // turn off image blur - BREAKS I.E COMPATIBILITY???
+	
+	// set game time
+	var game_time = Math.floor(i % 2400); // quicker to only check mod on the edge surely.
+	var time_h = Math.floor(game_time/100);
+	
+	// clear all
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	
+	/* Draw Game Scene & Character */
+	
+	// Background (upper) Panel
+	ctx.fillStyle = 'black';
+	ctx.fillRect(0,0,canvas.width,0.85*canvas.height);
+	ctx.fillStyle = 'white';
+	ctx.fillRect(1,1,canvas.width-2,0.85*canvas.height-2);
+	
+	
+	// Draw mountains
+	mount_x -= 0.7*mc.speedX;
+	ctx.drawImage(mount_bg, mount_x, mount_y);
+	
+	// Platform(s)
+	for (plat_num = 0; plat_num < Platforms.length; plat_num++){
+		Platforms[plat_num].x -= mc.speedX;
+		Platforms[plat_num].draw();
+	}
+	
+	// Enemies
+	enemy.update();
+	enemy.draw();
+	
+	// Update Character
+	mc.update();
+	// Draw Character
+	mc.draw();
+	
+	// Lower Panel
+	ctx.fillStyle = 'black';
+	ctx.fillRect(0,0.85*canvas.height,canvas.width,0.15*canvas.height);
+	ctx.fillStyle = 'white';
+	ctx.fillRect(2,0.85*canvas.height+2,canvas.width-4,0.15*canvas.height-4);
+
+	// Health and Mana Bars
+	ctx.fillStyle = 'black';
+	ctx.fillRect(0.1*canvas.width,0.9*canvas.height,0.3*canvas.width,0.05*canvas.height);
+	ctx.fillStyle = 'red';
+	ctx.fillRect(0.1*canvas.width+2,0.9*canvas.height+2,(mc.health/1000)*(0.3*canvas.width-4),0.05*canvas.height-4);
+	ctx.fillStyle = 'black';
+	ctx.fillRect(0.6*canvas.width,0.9*canvas.height,0.3*canvas.width,0.05*canvas.height);
+	ctx.fillStyle = 'blue';
+	ctx.fillRect(0.6*canvas.width+2,0.9*canvas.height+2,(mc.mana/1000)*(0.3*canvas.width-4),0.05*canvas.height-4);
+	
+	// Dev Display Panels
+	
+	if (dev_display){
+		ctx.fillText(map[37],100,100);
+		ctx.fillText(map[38],150,80);
+		ctx.fillText(map[39],200,100);
+		ctx.fillText(map[40],150,120);
+	
+		ctx.fillText("fireball_timer: ".concat(fireball_timer),100,160);
+		ctx.fillText("mc.alive: ".concat(mc.alive),100, 180);
+		ctx.fillText("mc.mana: ".concat(mc.mana),100,200);
+		ctx.fillText("in_air: ".concat(mc.in_air),100,220);
+		ctx.fillText("last_arrow_key: ".concat(last_arrow_key),100,240);
+		ctx.fillText("mc.x: ".concat(mc.x),100,260);
+		ctx.fillText("mc.y: ".concat(mc.y),100,280);
+		ctx.fillText("fireball_key: ".concat(fireball_key),100,300);		
+		
+		// game clock
+		ctx.fillStyle = 'black';
+		ctx.fillText("game_time: ".concat(game_time), 150, 50);
+		ctx.fillText("time_h: ".concat(time_h), 60, 50);
+		ctx.fillStyle = 'brown';
+	}
+	
+	// Runes Displayed Beneath Main Character 
+	if (rune_timer > 0){
+		if (num_runes_cast == 1){
+			draw_circle(mc.x + 0.5*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[0]);
+		}
+		if (num_runes_cast == 2){
+			draw_circle(mc.x + 0.3*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[0]);
+			draw_circle(mc.x + 0.6*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[1]);
+		}
+		if (num_runes_cast == 3){
+			draw_circle(mc.x + 0.2*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[0]);
+			draw_circle(mc.x + 0.5*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[1]);
+			draw_circle(mc.x + 0.8*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[2]);
+		}
+		if (num_runes_cast == 4){
+			draw_circle(mc.x + 0.05*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[0]);
+			draw_circle(mc.x + 0.35*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[1]);
+			draw_circle(mc.x + 0.65*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[2]);
+			draw_circle(mc.x + 0.95*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[3]);
+		}
+		if (num_runes_cast == 5){
+			draw_circle(mc.x - 0.1*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[0]);
+			draw_circle(mc.x + 0.2*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[1]);
+			draw_circle(mc.x + 0.5*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[2]);
+			draw_circle(mc.x + 0.8*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[3]);
+			draw_circle(mc.x + 1.1*mc.width, mc.y + 1.3*mc.height, 0.15*mc.width, rune_list[4]);
+		} // can do better than all this hardcoding... add spacing var distribute about 0.5*mc.width
+		
+		rune_timer++;
+		if (rune_timer == 30){ // alpha fade here
+			rune_timer = 0; 
+			num_runes_cast = 0;
+			rune_list = [];
+			fireball_timer = 1;
+			fireball_x = mc.x;
+			fireball_y = mc.y;
+			if (mc.mana >= fireball_cost){
+				mc.mana -= fireball_cost;
+			}
+			else {
+				mc.mana = 0;
+				if (mc.health > fireball_cost){
+					mc.health -= (fireball_cost - mc.mana); 
+				} 
+				else {
+					mc.health = 0;
+					mc.alive = false;
+				}
+			}
+		}
+	}
+	
+	// Fireball
+	if (fireball_timer > 0){
+		fireball(fireball_x,fireball_y,fireball_timer,fireball_key);
+		fireball_timer++;
+		if (fireball_timer == 30){
+			fireball_timer = 0;
+		}
+	}
+	
+	// Health and Mana Regeneration
+	
+	if (mc.mana < max_mana){
+		if (mc.alive){
+			mc.mana += mana_increment;
+		}
+	}
+	if (mc.health < max_health){
+		if (i%5 == 0){
+			if (mc.alive){
+				mc.health += health_increment;
+			}
+		}
+	}
+	
+	// Game update loop
+	i++;
+	setTimeout(update_game,update_speed);
+}
+
+
+var map = {};  // Could also use an array
+map[37] = map[38] = map[39] = map[40] = false;
+
+function game(){
+
+var game_time = 2;
+
+
+window.addEventListener('keydown',check);
+window.addEventListener('keyup',check2);
+
+function check(e) { // on keypress
+
+    e = e || event; // to deal with IE
+    map[e.keyCode] = true;
+    var code = e.keyCode;
+	
+	if (code == 37 || code == 38 || code == 39 || code == 40){
+		last_arrow_key = code;
+	}
+	
+    if (map[37]){ // Left arrow key
+		mc.speedX = -15;
+		mc.state = 0;
+	}
+	
+    if (map[38]){ // Up arrow key
+		if (!mc.in_air){
+			mc.speedY -= 0.04*canvas.height;
+			mc.in_air = true;
+			mc.state = 1;
+		}
+		else {
+			mc.speedY = mc.speedY - 2;
+		}
+			
+    }
+	
+	if (map[39]){ // Right arrow key
+		mc.speedX = 15;
+		mc.state = 2;
+	}
+	
+	if (map[40]){ // Down arrow key
+		mc.speedY += 1;
+		mc.state = 3;
+    }
+	
+	if (code == 65) { // A key
+		rune_list.push('light-blue');
+	}
+    if (code == 87){ // W key
+		rune_list.push('blue');
+		if (rune_timer < 30){
+			if (num_runes_cast < 5){
+				num_runes_cast++;
+				rune_timer = 1;
+			}
+			fireball_key = last_arrow_key;
+			for (kk = 37; kk < 41; kk++){ 
+				if (map[kk] && !map[last_arrow_key]){
+					fireball_key = kk;
+				}
+			}
+		}
+    }
+	if (code == 68){ // D key
+		mc.x += 10;
+    }
+	if (code == 83){ // S key
+		mc.y += 10;
+    }
+	if (code == fire_code){ // F key
+		rune_type = 'fire';
+		rune_list.push('red');
+		if (rune_timer < 30){
+			if (num_runes_cast < 5){
+				num_runes_cast++;
+				rune_timer = 1;
+			}
+			fireball_key = last_arrow_key;
+			for (kk = 37; kk < 41; kk++){ 
+				if (map[kk] && !map[last_arrow_key]){
+					fireball_key = kk;
+				}
+			}
+		}
+	}
+	
+	last_key = code; // get last key pressed?
+
+}
+
+function check2(e) { // on key release
+
+    e = e || event; // to deal with IE
+    var code = e.keyCode;
+    map[code] = false;
+	
+	last_key_released = code;
+	
+} 
+
+update_game();
+
+}
+
+game();
+
+</script>
+
+</html>
