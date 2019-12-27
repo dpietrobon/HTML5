@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title> SPACEMAN </title>
+<meta charset = "utf-8">
+<meta name = "viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		
+<!-- 
+<link type="text/css" rel="stylesheet" href="main.css">
+-->
+		
+<style>
+body {
+	background-color: #ccc;
+	color: #000;
+}
+a {
+	color: #f00;
+}
+</style>
+		
+</head>
+
+<body>
+		
+
+<script src = 'three.js'></script>
+<script src = 'OrbitControls.js'></script>
+
+<script>
+
+var camera, controls, scene, renderer;
+
+var collidableMeshList = [];
+var keys = [];
+
+init();
+
+function init() {
+	scene = new THREE.Scene();
+	scene.background = new THREE.Color( '#add8e6' );
+	// scene.fog = new THREE.FogExp2( 0xcccccc, 0.002, 3000 );
+	scene.fog = new THREE.Fog( 0xcccccc, 0.002, 3000 );
+	renderer = new THREE.WebGLRenderer( { antialias: true } );
+	renderer.shadowMap.enabled = true;
+	renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize( 0.98*window.innerWidth, 0.97*window.innerHeight );
+	document.body.appendChild( renderer.domElement );
+	
+	camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 5000 );
+	camera.position.set( 800, 500, 800 );
+	
+	// controls
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	//controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
+	//controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+	
+	//controls.enableZoom = false;
+	/*
+	controls.dampingFactor = 0.05;
+	controls.screenSpacePanning = false;
+	controls.minDistance = 100;
+	controls.maxDistance = 600;
+	controls.maxPolarAngle = Math.PI / 2;
+	*/
+	
+	const loader = new THREE.TextureLoader();
+	
+	var light = new THREE.AmbientLight( 0x223222, 1.0 );
+	scene.add( light );
+	
+	var spotLight = new THREE.SpotLight( 0xffffff );
+	spotLight.position.set( 3000, 2000, 1000 );
+	spotLight.castShadow = true;
+	spotLight.shadow.mapSize.width = Math.pow(2,11);
+	spotLight.shadow.mapSize.height = Math.pow(2,11);
+	spotLight.shadow.camera.near = 500;
+	spotLight.shadow.camera.far = 6000;
+	spotLight.shadow.camera.fov = 50;
+	spotLight.bias = 3;
+	scene.add( spotLight );
+}	
+
+/*
+// grassy circle at origin
+var radius = 1000;
+var segments = 9;
+var geometry = new THREE.CircleBufferGeometry(radius, segments);
+var material = new THREE.MeshPhongMaterial( {color: 0x00bb00, side: THREE.DoubleSide} );
+var circle = new THREE.Mesh( geometry, material );
+circle.rotateX(Math.PI/2);
+scene.add(circle);
+*/
+
+// dirt platform space cone
+var radius = 1000;
+var height = 1000;
+var segments = 9;
+var geometry = new THREE.ConeGeometry(radius, height, segments);
+var material = new THREE.MeshPhongMaterial( {color: 0x4a2d13, side: THREE.DoubleSide} );
+var cone = new THREE.Mesh( geometry, material );
+cone.rotateX(Math.PI);
+cone.translateX(200);
+cone.translateY(height/2 - 1);
+scene.add(cone);
+
+collidableMeshList.push(geometry);
+
+// draw main character
+
+var MC_radius = 10;
+var widthSegments = 12;
+var heightSegments = 8;
+var MC_geometry = new THREE.SphereGeometry(MC_radius, widthSegments, heightSegments);
+// var material = new THREE.MeshPhongMaterial( {color: 0x4a2d13, side: THREE.DoubleSide} );
+var material = new THREE.MeshStandardMaterial( {color: 0xe1ff00, metalness: 1.0} ); // gold strings
+var MC = new THREE.Mesh( MC_geometry, material );
+MC.translateY(100*MC_radius);
+scene.add(MC);
+
+var MC_total = [];
+MC_total.push(MC);
+
+var originPoint = MC.position.clone();
+
+var MC_dy = 0;
+var MC_dx = 0;
+
+// console.log(MC.itemSize);
+
+detect_collisions();
+update_animation();
+
+animate();
+
+function update_animation(){
+	if (MC_dy > -20){
+		MC_dy--; // gravity
+	}
+	MC.translateY(MC_dy);
+	
+	// 	KEY CODES = { SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 , A: 65, D: 68, E: 69, S: 83, W: 87 };
+	if (keys[32]){ // if SPACE key pressed 
+		var vector = new THREE.Vector3(); 
+		var test = camera.getWorldDirection( vector );
+		
+		controls.target = new THREE.Vector3(MC.position.x, MC.position.y, MC.position.z );
+		
+		MC_dy = 20;
+	}	
+	if (keys[65]){ // if "A" key pressed 
+		var vector = new THREE.Vector3(); 
+		var test = camera.getWorldDirection( vector );
+		
+		var axis = new THREE.Vector3( 0, 1, 0 );
+		var angle = Math.PI / 2;
+
+		test.applyAxisAngle( axis, angle );
+		
+		for (var n = 0; n < MC_total.length; n++){
+			MC_total[n].position.x += 9*test.x;
+			MC_total[n].position.z += 9*test.z;
+		}
+		
+		camera.position.x += 9*test.x;
+		camera.position.z += 9*test.z;
+		
+		controls.target = new THREE.Vector3(MC.position.x, MC.position.y, MC.position.z );
+	}	
+	if (keys[87]){ // if "W" key pressed 
+		
+		var vector = new THREE.Vector3(); 
+		var test = camera.getWorldDirection( vector );
+
+		for (var n = 0; n < MC_total.length; n++){
+			MC_total[n].position.x += 11*test.x;
+			MC_total[n].position.z += 11*test.z;
+		}
+
+		camera.position.x += 11*test.x;
+		camera.position.z += 11*test.z;
+
+		controls.target = new THREE.Vector3(MC.position.x, MC.position.y, MC.position.z );
+	}
+	if (keys[68]){ // if "D" key pressed 
+		
+		var vector = new THREE.Vector3(); // create once and reuse it!
+		var test = camera.getWorldDirection( vector );
+		
+		var axis = new THREE.Vector3( 0, 1, 0 );
+		var angle = Math.PI / 2;
+
+		test.applyAxisAngle( axis, angle );
+		
+		for (var n = 0; n < MC_total.length; n++){
+			MC_total[n].position.x += -9*test.x;
+			MC_total[n].position.z += -9*test.z;
+		}
+		
+		camera.position.x += -9*test.x;
+		camera.position.z += -9*test.z;
+		
+		controls.target = new THREE.Vector3(MC.position.x, MC.position.y, MC.position.z );
+	}
+	if (keys[83]){ // if "D" key pressed 
+		var vector = new THREE.Vector3(); 
+		var test = camera.getWorldDirection( vector );
+
+		for (var n = 0; n < MC_total.length; n++){
+			MC_total[n].position.x -= 11*test.x;
+			MC_total[n].position.z -= 11*test.z;
+		}
+
+		camera.position.x -= 11*test.x;
+		camera.position.z -= 11*test.z;
+
+		controls.target = new THREE.Vector3(MC.position.x, MC.position.y, MC.position.z );
+	}	
+	if (keys[37]){ // if left arrow key pressed 
+		var vector = new THREE.Vector3(); 
+		var test = camera.getWorldDirection( vector );
+		
+		var axis = new THREE.Vector3( 0, 1, 0 );
+		var angle = Math.PI / 2;
+
+		test.applyAxisAngle( axis, angle );
+		
+		for (var n = 0; n < MC_total.length; n++){
+			MC_total[n].position.x += 9*test.x;
+			MC_total[n].position.z += 9*test.z;
+		}
+		
+		camera.position.x += 9*test.x;
+		camera.position.z += 9*test.z;
+		
+		controls.target = new THREE.Vector3(MC.position.x, MC.position.y, MC.position.z );
+	}	
+	if (keys[38]){ // if up arrow key pressed 
+		
+		var vector = new THREE.Vector3(); 
+		var test = camera.getWorldDirection( vector );
+
+		for (var n = 0; n < MC_total.length; n++){
+			MC_total[n].position.x += 11*test.x;
+			MC_total[n].position.z += 11*test.z;
+		}
+
+		camera.position.x += 11*test.x;
+		camera.position.z += 11*test.z;
+
+		controls.target = new THREE.Vector3(MC.position.x, MC.position.y, MC.position.z );
+	}
+	if (keys[39]){ // if right arrow key pressed 
+		
+		var vector = new THREE.Vector3(); // create once and reuse it!
+		var test = camera.getWorldDirection( vector );
+		
+		var axis = new THREE.Vector3( 0, 1, 0 );
+		var angle = Math.PI / 2;
+
+		test.applyAxisAngle( axis, angle );
+		
+		for (var n = 0; n < MC_total.length; n++){
+			MC_total[n].position.x += -9*test.x;
+			MC_total[n].position.z += -9*test.z;
+		}
+		
+		camera.position.x += -9*test.x;
+		camera.position.z += -9*test.z;
+		
+		controls.target = new THREE.Vector3(MC.position.x, MC.position.y, MC.position.z );
+	}
+	if (keys[40]){ // if down arrow key pressed 
+		var vector = new THREE.Vector3(); 
+		var test = camera.getWorldDirection( vector );
+
+		for (var n = 0; n < MC_total.length; n++){
+			MC_total[n].position.x -= 11*test.x;
+			MC_total[n].position.z -= 11*test.z;
+		}
+
+		camera.position.x -= 11*test.x;
+		camera.position.z -= 11*test.z;
+
+		controls.target = new THREE.Vector3(MC.position.x, MC.position.y, MC.position.z );
+	}
+}
+
+function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+}
+
+function detect_collisions(){
+	// fuck it i'll write my own collision detection
+	if (MC.position.y < 2*MC_radius){
+		MC.position.y = 3*MC_radius;
+		/*
+		var text2 = document.createElement('div');
+		text2.style.position = 'absolute';
+		text2.style.backgroundColor = "white";
+		text2.innerHTML = "\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0" + " You've given so much to the town! " + "\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0";
+		text2.style.top = 0.8*window.innerHeight + 'px';
+		text2.style.left = 0.4*window.innerWidth + 'px';
+		document.body.appendChild(text2);
+		*/
+	}
+}
+
+function animate() {
+	//controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
+	
+	detect_collisions();
+	
+	update_animation();
+	
+	render();
+	
+	requestAnimationFrame( animate );
+}
+
+function render() {
+	renderer.render( scene, camera );
+}
+
+</script>
+
+</body>
+</html>
